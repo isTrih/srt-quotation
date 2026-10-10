@@ -106,7 +106,7 @@ jobs:
             skopeo copy --all --preserve-digests --retry-times 3 \
               --authfile "$RUNNER_TEMP/dockerhub-auth.json" \
               --digestfile "$RUNNER_TEMP/published-digest.txt" \
-              "oci-archive:$RUNNER_TEMP/image/srt-quotation-image.tar" "docker://$tag"
+              "oci-archive:$RUNNER_TEMP/image/srt-quotation-image.tar:${tag##*:}" "docker://$tag"
             printf 'Published `%s`\n\n' "$tag" >> "$GITHUB_STEP_SUMMARY"
           done < "$RUNNER_TEMP/image/image-tags.txt"
           printf 'Image digest: `%s`\n' "$(cat "$RUNNER_TEMP/published-digest.txt")" >> "$GITHUB_STEP_SUMMARY"
