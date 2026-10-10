@@ -1,0 +1,26 @@
+services:
+  quotation:
+    image: ${DOCKER_IMAGE:-srt-quotation:local}
+    build:
+      context: .
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      NODE_ENV: production
+      PORT: "8080"
+      DATA_DIR: /app/data
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:8080}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+    volumes:
+      - quotation-data:/app/data
+    restart: unless-stopped
+    mem_limit: 384m
+    cpus: 1.0
+    pids_limit: 80
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+volumes:
+  quotation-data:

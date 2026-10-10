@@ -1,0 +1,40 @@
+{
+  "name": "srt-quotation",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "modern dev",
+    "build": "bun scripts/build.mjs",
+    "deploy": "modern deploy",
+    "start": "bun .output/index.js",
+    "test": "node --test tests/*.test.js",
+    "preview": "modern serve",
+    "test:integration": "node --test tests/integration.test.mjs",
+    "backup": "bun scripts/backup.mjs",
+    "typecheck": "tsc --noEmit",
+    "build:binary": "bun scripts/build-binary.mjs"
+  },
+  "dependencies": {
+    "@modern-js/plugin-bff": "3.9.3",
+    "@modern-js/runtime": "3.9.3",
+    "@modern-js/server-runtime": "3.9.3",
+    "hono": "^4.13.13",
+    "pdfkit": "0.17.2",
+    "qrcode": "1.5.4",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@modern-js/app-tools": "3.9.3",
+    "typescript": "^5.9.3",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/node": "^24.0.0"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "bun": ">=1.4.3"
+  },
+  "packageManager": "bun@1.4.3"
+}

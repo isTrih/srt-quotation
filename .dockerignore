@@ -1,0 +1,13 @@
+node_modules
+dist
+.output
+.git
+.agents
+.codex
+data
+tmp
+index
+.env
+.env.*
+*.sqlite*
+output

@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.vite/
+index/
+tmp/
+
+.output/
+data/
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite-*
+output/
+
+.agents/runs/
