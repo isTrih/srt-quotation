@@ -37,8 +37,8 @@ function VersionList({record,onChange,onError}) {
       <div className="version-actions">
         {!v.revoked&&<><a className="secondary-button" href={'/q/'+v.token} target="_blank" rel="noreferrer">查看在线报价</a>
           <button className="secondary-button" onClick={async()=>{try{await navigator.clipboard.writeText(v.url);onError('访客链接已复制');}catch{onError('无法复制，请手动复制下方地址');}}}>复制链接</button>
-          <a className="primary-button" href={'/api/public/'+v.token+'?format=pdf'} download>下载正式 PDF</a>
-          <button className="text-button danger" onClick={async()=>{if(!window.confirm('撤销 V'+v.version+'？访客链接和原件下载将立即停止访问。'))return;try{onChange(await adminPost({action:'revoke',token:v.token}));}catch(e){onError(e.message);}}}>撤销访问</button></>}
+          <a className="primary-button" href={'/api/public/'+v.token+'?format=pdf'} download>生成并下载 PDF</a>
+          <button className="text-button danger" onClick={async()=>{if(!window.confirm('撤销 V'+v.version+'？访客链接和PDF下载将立即停止访问。'))return;try{onChange(await adminPost({action:'revoke',token:v.token}));}catch(e){onError(e.message);}}}>撤销访问</button></>}
       </div><input aria-label={'V'+v.version+'访客地址'} value={v.url} readOnly onFocus={e=>e.target.select()}/>
     </div>)}
     {record.audit?.length>0&&<details><summary>操作记录</summary><ul className="audit-list">{record.audit.map((a,i)=><li key={i}><span>{a.action}</span><time>{date(a.at)}</time></li>)}</ul></details>}
@@ -71,13 +71,13 @@ function Settings({onNotice,onLogout}) {
   return <main className="dashboard settings-page"><div className="page-heading"><div><div className="eyebrow">WORKSPACE SETTINGS</div><h1>系统设置</h1><p>配置在线报价地址、核验水印与管理员账户。</p></div></div>
     <section className="panel"><h2>在线报价与水印</h2><form onSubmit={async e=>{e.preventDefault();setBusy(true);try{await adminPost({action:'settings',...config});onNotice('系统设置已保存');}catch(err){onNotice(err.message);}finally{setBusy(false);}}}>
       <label className="field"><span>在线访问地址</span><input required type="url" value={config.publicOrigin} onChange={e=>setConfig({...config,publicOrigin:e.target.value})} placeholder="https://quote.example.com"/></label><p className="help">正式发布的链接和二维码使用此地址。可在本机测试时填写当前地址：{window.location.origin}。修改地址只影响新版本。</p>
-      <label className="field"><span>PDF 水印文字</span><input maxLength={80} value={config.watermark} onChange={e=>setConfig({...config,watermark:e.target.value})}/></label><p className="help">留空关闭水印。水印提示访客核验，原件是否改动由文件校验判断。</p>
+      <label className="field"><span>PDF 水印文字</span><input maxLength={80} value={config.watermark} onChange={e=>setConfig({...config,watermark:e.target.value})}/></label><p className="help">留空关闭水印。水印提示访客核验，下载文件是否改动由校验码判断。</p>
       <button className="primary-button" disabled={busy}>保存设置</button>
     </form></section>
     <section className="panel"><h2>管理员账户 · {config.username}</h2><form onSubmit={async e=>{e.preventDefault();setBusy(true);try{await adminPost({action:'password',currentPassword,password});onNotice('密码已更新，请重新登录');onLogout();}catch(err){onNotice(err.message);}finally{setBusy(false);}}}>
       <div className="field-grid"><label className="field"><span>当前密码</span><input required type="password" autoComplete="current-password" value={currentPassword} onChange={e=>setCurrentPassword(e.target.value)}/></label><label className="field"><span>新密码</span><input required minLength={12} maxLength={128} type="password" autoComplete="new-password" value={password} onChange={e=>setPassword(e.target.value)}/></label></div><button className="secondary-button" disabled={busy}>更新密码并退出</button>
     </form></section>
-    <section className="panel"><h2>数据备份</h2><p className="help">下载报价数据用于离线留档。服务器完整恢复需备份持久目录中的 SQLite 数据库及 pdf 文件夹，具体操作见部署说明。</p><button className="secondary-button" onClick={async()=>{try{const data=await adminGet({action:'backup'});downloadBlob(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),'报价历史-'+todayInput()+'.json');onNotice('报价历史已导出');}catch(e){onNotice(e.message);}}}>导出全部报价数据</button></section>
+    <section className="panel"><h2>数据备份</h2><p className="help">下载报价数据用于离线留档。服务器完整恢复只需备份持久目录中的 SQLite 数据库，具体操作见部署说明。</p><button className="secondary-button" onClick={async()=>{try{const data=await adminGet({action:'backup'});downloadBlob(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),'报价历史-'+todayInput()+'.json');onNotice('报价历史已导出');}catch(e){onNotice(e.message);}}}>导出全部报价数据</button></section>
   </main>;
 }
 export default function Workspace() {
@@ -104,7 +104,7 @@ export default function Workspace() {
     try {
       let r=await adminPost({action:'save',id:record?.id,revision:record?.revision,data});
       setRecord(r);localStorage.setItem('quotationActiveQuote',r.id);
-      if(publish){r=await adminPost({action:'publish',id:r.id});setRecord(r);notice('报价已发布，正式PDF和访客链接见下方“已发布版本”');}
+      if(publish){r=await adminPost({action:'publish',id:r.id});setRecord(r);notice('报价已发布，PDF下载和访客链接见下方“已发布版本”');}
       return r;
     } finally{saving.current=false;setBusy(false);}
   }

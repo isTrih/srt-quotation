@@ -15,7 +15,7 @@ export async function get() {
     });
     if(action==='backup') {
       const quotes=query('SELECT * FROM quotes ORDER BY created').all();
-      return c.json({format:'quotation-backup-v2',created:new Date().toISOString(),quotes:quotes.map(q=>({...q,data:JSON.parse(String(q.data))})),versions:query('SELECT * FROM versions ORDER BY created').all(),settings:settings()});
+      return c.json({format:'quotation-backup-v2',created:new Date().toISOString(),quotes:quotes.map(q=>({...q,data:JSON.parse(String(q.data))})),versions:query('SELECT * FROM versions ORDER BY created').all(),pdfDownloadHashes:query('SELECT * FROM pdf_download_hashes ORDER BY created').all(),settings:settings()});
     }
     if(action && action!=='list') throw new HttpError(400,'操作无效');
     return list(c.req.query());

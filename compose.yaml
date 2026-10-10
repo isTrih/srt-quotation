@@ -1,6 +1,6 @@
 services:
   quotation:
-    image: ${DOCKER_IMAGE:-srt-quotation:local}
+    image: ${DOCKER_IMAGE:-trhilp/srt-quotation:latest}
     build:
       context: .
     ports:
@@ -13,7 +13,7 @@ services:
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       TRUST_PROXY: ${TRUST_PROXY:-false}
     volumes:
-      - quotation-data:/app/data
+      - ${DATA_PATH:-./data}:/app/data
     restart: unless-stopped
     mem_limit: 384m
     cpus: 1.0
@@ -22,5 +22,3 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
-volumes:
-  quotation-data:

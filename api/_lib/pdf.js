@@ -118,7 +118,7 @@ async function render(data, info) {
       text('报价日期：'+data.quotationDate,right-195,dateY,195,9,'right');
       drawStamp(right-52,dateY+2);
       if (qr) {
-        text('左上角扫码查看 / 核验原件',left,Math.min(y,738)+8,218,8);
+        text('左上角扫码查看 / 核验报价',left,Math.min(y,738)+8,218,8);
         text(info.number + ' · V' + info.version,left,Math.min(y,738)+24,218,8);
         text('内容校验码 '+info.contentHash.slice(0,16),left,Math.min(y,738)+40,218,7);
       } else text('草稿预览 · 发布后附在线核验二维码',left,Math.min(y+16,765),300,8,'left','#728096');

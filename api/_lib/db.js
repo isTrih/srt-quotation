@@ -25,6 +25,7 @@ db.exec(`
     token TEXT PRIMARY KEY, quote_id TEXT NOT NULL REFERENCES quotes(id),
     version INTEGER NOT NULL, data TEXT NOT NULL, content_hash TEXT NOT NULL,
     pdf_hash TEXT NOT NULL, url TEXT NOT NULL, created TEXT NOT NULL,
+    render_options TEXT NOT NULL DEFAULT '{}',
     revoked INTEGER NOT NULL DEFAULT 0,
     UNIQUE(quote_id,version)
   );
@@ -32,6 +33,14 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS quotes_updated ON quotes(updated);
   CREATE INDEX IF NOT EXISTS versions_quote ON versions(quote_id);
 `);
+// Add frozen rendering settings to databases created by the previous version.
+if(!query('PRAGMA table_info(versions)').all().some(c=>c.name==='render_options'))db.exec("ALTER TABLE versions ADD COLUMN render_options TEXT NOT NULL DEFAULT '{}'");
+db.exec(`CREATE TABLE IF NOT EXISTS pdf_download_hashes (
+  token TEXT NOT NULL REFERENCES versions(token), hash TEXT NOT NULL, created TEXT NOT NULL,
+  PRIMARY KEY(token,hash)
+);
+INSERT OR IGNORE INTO pdf_download_hashes(token,hash,created)
+SELECT token,pdf_hash,created FROM versions WHERE pdf_hash<>'';`);
 export function transaction(fn) {
   db.exec('BEGIN IMMEDIATE');
   try { const result = fn(); db.exec('COMMIT'); return result; }

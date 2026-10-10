@@ -268,7 +268,7 @@ export default function Editor({ initialData, record, onSave, onPublish, busy })
       const response = await fetch("/api/preview", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({data})});
       if (!response.ok) throw new Error((await response.json()).error || "生成失败");
       downloadBlob(await response.blob(), "草稿-"+data.quotationDate+".pdf");
-      setNotice("文字 PDF 已下载；正式报价请发布后下载原件");
+      setNotice("文字 PDF 已下载；正式报价请发布后生成并下载");
     } catch (error) { setNotice(error.message); }
     finally { setExporting(false); }
   };

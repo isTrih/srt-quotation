@@ -13,7 +13,8 @@
     "test:integration": "node --test tests/integration.test.mjs",
     "backup": "bun scripts/backup.mjs",
     "typecheck": "tsc --noEmit",
-    "build:binary": "bun scripts/build-binary.mjs"
+    "test:web": "bun test tests/quote-web.test.tsx",
+    "test:docker": "node --test tests/docker-smoke.test.mjs"
   },
   "dependencies": {
     "@modern-js/plugin-bff": "3.9.3",

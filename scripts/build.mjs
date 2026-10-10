@@ -12,4 +12,4 @@ const modern=resolve(dirname(toolsPackage),typeof tools.bin==='string'?tools.bin
 const run=(entry,args=[])=>execFileSync('node',[entry,...args],{cwd:root,stdio:'inherit'});
 run(require.resolve('typescript/bin/tsc'),['--noEmit']);
 run(modern,['deploy']);
-await import('./build-binary.mjs');
+await import('./prepare-runtime.mjs');

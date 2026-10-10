@@ -8,7 +8,7 @@ export async function get(token:string) {
   try {
     const version=publicVersion(token);
     if(c.req.query('format')==='pdf') {
-      return new Response(pdfBytes(token),{headers:{
+      return new Response(await pdfBytes(token),{headers:{
         'Content-Type':'application/pdf','Content-Disposition':'attachment; filename="'+version.number+'-V'+version.version+'.pdf"',
         'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',
       }});
