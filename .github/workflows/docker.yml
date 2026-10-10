@@ -1,4 +1,4 @@
-name: Build and publish Bun Docker image
+name: Verify, build and push Bun Docker image
 on:
   push:
     branches: [main, master]
@@ -12,6 +12,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   verify:
+    name: verify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -26,7 +27,8 @@ jobs:
       - run: bun run test:web
       - run: bun run build
       - run: bun run test:integration
-  docker:
+  build:
+    name: build
     needs: verify
     runs-on: ubuntu-latest
     steps:
@@ -36,7 +38,7 @@ jobs:
       - uses: docker/metadata-action@v5
         id: meta
         with:
-          images: trhilp/srt-quotation
+          images: trihlp/srt-quotation
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=semver,pattern={{version}}
@@ -55,36 +57,59 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: mode=min
+      - name: Save image tags
+        env:
+          IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
+        run: printf '%s\n' "$IMAGE_TAGS" > "$RUNNER_TEMP/image-tags.txt"
       - name: Save built image
+        id: archive
         uses: actions/upload-artifact@v4
         with:
           name: srt-quotation-linux-oci
-          path: ${{ runner.temp }}/srt-quotation-image.tar
+          path: |
+            ${{ runner.temp }}/srt-quotation-image.tar
+            ${{ runner.temp }}/image-tags.txt
+          overwrite: true
           compression-level: 0
           retention-days: 7
           if-no-files-found: error
-      - name: Check publishing token
-        if: github.event_name != 'pull_request'
+  push:
+    name: push
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download built image
+        uses: actions/download-artifact@v4
+        with:
+          name: srt-quotation-linux-oci
+          path: ${{ runner.temp }}/image
+      - name: Install image transfer tool
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends skopeo
+      - name: Docker Hub login
         env:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          test -n "$DOCKERHUB_TOKEN" || { echo "Set repository secret DOCKERHUB_TOKEN for trhilp"; exit 1; }
-      - name: Docker Hub login
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v4
-        with:
-          username: trhilp
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Publish image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            BUILD_TIME=${{ github.event.head_commit.timestamp }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          provenance: mode=min
+          test -n "$DOCKERHUB_TOKEN" || { echo "Set repository secret DOCKERHUB_TOKEN for trihlp"; exit 1; }
+          printf '%s' "$DOCKERHUB_TOKEN" | skopeo login --authfile "$RUNNER_TEMP/dockerhub-auth.json" --username trihlp --password-stdin docker.io
+      - name: Push the built image without rebuilding
+        run: |
+          set -euo pipefail
+          while IFS= read -r tag; do
+            test -n "$tag" || continue
+            case "$tag" in
+              trihlp/srt-quotation:*) ;;
+              *) echo "Unexpected image tag: $tag"; exit 1 ;;
+            esac
+            skopeo copy --all --preserve-digests --retry-times 3 \
+              --authfile "$RUNNER_TEMP/dockerhub-auth.json" \
+              --digestfile "$RUNNER_TEMP/published-digest.txt" \
+              "oci-archive:$RUNNER_TEMP/image/srt-quotation-image.tar" "docker://$tag"
+            printf 'Published `%s`\n\n' "$tag" >> "$GITHUB_STEP_SUMMARY"
+          done < "$RUNNER_TEMP/image/image-tags.txt"
+          printf 'Image digest: `%s`\n' "$(cat "$RUNNER_TEMP/published-digest.txt")" >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove registry credentials
+        if: always()
+        run: rm -f -- "$RUNNER_TEMP/dockerhub-auth.json"

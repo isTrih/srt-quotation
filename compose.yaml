@@ -1,6 +1,6 @@
 services:
   quotation:
-    image: ${DOCKER_IMAGE:-trhilp/srt-quotation:latest}
+    image: ${DOCKER_IMAGE:-trihlp/srt-quotation:latest}
     build:
       context: .
     ports:

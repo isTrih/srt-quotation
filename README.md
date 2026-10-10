@@ -73,7 +73,7 @@ PDFKit 直接绘制中文文字、矢量表格和水印；公章与二维码为�
 
 ## Docker：外部挂载数据
 
-镜像名称固定为 `trhilp/srt-quotation`。Dockerfile 使用多阶段构建；运行阶段基于 oven/bun:1.4.3-slim，使用 UID/GID 10001 的普通用户。开发工具仅留在构建阶段。
+镜像名称固定为 `trihlp/srt-quotation`。Dockerfile 使用多阶段构建；运行阶段基于 oven/bun:1.4.3-slim，使用 UID/GID 10001 的普通用户。开发工具仅留在构建阶段。
 
 在 Linux 服务器准备配置及数据目录：
 
@@ -100,21 +100,29 @@ Compose 端口为本机127.0.0.1:8080，使用 Nginx/Caddy 配置 HTTPS 反向�
 
 工作流：`.github/workflows/docker.yml`。
 
-Docker Hub 用户名已固定为 **trhilp**，镜像仓库固定为 **trhilp/srt-quotation**。在 Docker Hub 创建 srt-quotation 仓库，在 GitHub 仓库 Settings → Secrets and variables → Actions → New repository secret 设置：
+Docker Hub 用户名已固定为 **trihlp**，镜像仓库固定为 **trihlp/srt-quotation**。在 Docker Hub 创建 srt-quotation 仓库，在 GitHub 仓库 Settings → Secrets and variables → Actions → New repository secret 设置：
 
 |Secret 名称|值|
 |---|---|
-|DOCKERHUB_TOKEN|trhilp 账号生成的 Docker Hub Access Token，具有目标仓库写入权限|
+|DOCKERHUB_TOKEN|trihlp 账号生成的 Docker Hub Access Token，具有目标仓库写入权限|
 
 不需要用户名变量。令牌只保存到 GitHub Secret，工作流从中读取，不放进源码、镜像或前端。
 
 工作流在 main/master 推送、v* 标签、手动触发及 PR 时运行：
 
-1. Linux 执行冻结依赖安装、报价回归、网页渲染、正式构建和隔离发布目录测试。
-2. 直接构建 linux/amd64 与 linux/arm64 镜像，保存 OCI 镜像归档到 Actions 构建附件（保留7天）；按要求不执行镜像运行检查。
-3. 登录 Docker Hub 并推送。构建先于登录，即使令牌失效也能取得镜像附件；更新 Secret 后重新运行失败的任务即可发布。
-4. 默认分支生成 latest 和 SHA 标签，v2.0.0 等标签生成版本镜像。PR 只构建测试，不使用 Docker Hub 令牌。
-5. 服务器更新执行 docker compose pull 和 docker compose up -d --no-build。
+1. **verify**：只在 Linux 验证冻结依赖、报价逻辑、网页渲染、正式构建及独立发布目录。
+2. **build**：构建 linux/amd64 与 linux/arm64 镜像，将 OCI 归档与发布标签一起保存到 Actions 附件（保留7天）。不执行镜像运行检查，不读取 Docker Hub 令牌。
+3. **push**：下载 build 的原有附件，使用 Skopeo 将全部平台复制到 Docker Hub，不重新执行 Dockerfile。只有此任务读取 DOCKERHUB_TOKEN；PR 跳过此任务。
+
+默认分支生成 latest 和 SHA 标签，v2.0.0 等标签生成版本镜像。服务器更新执行 docker compose pull 和 docker compose up -d --no-build。
+
+### 单独重试与调试
+
+- 推送失败：修正令牌后，在失败的 **push** 任务点击 **Re-run jobs**，或使用 **Re-run failed jobs**。成功的 verify/build 不会重跑，push 直接复用已构建镜像。
+- 构建失败：重试 build 或失败任务，构建缓存继续复用；成功的 verify 无需重跑。
+- 验证失败：先修复源码再推送，新提交重新走三个任务。
+- 附件过期（7天）或手动删除后，push 无法复用原镜像，需要重新运行 build。
+- 使用 **Re-run all jobs** 会重跑三个任务；只有希望完整重建时才使用。
 
 本机没有 Docker，镜像构建与发布由 GitHub Actions 执行。
 
