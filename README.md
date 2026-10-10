@@ -111,9 +111,10 @@ Docker Hub 用户名已固定为 **trhilp**，镜像仓库固定为 **trhilp/srt
 工作流在 main/master 推送、v* 标签、手动触发及 PR 时运行：
 
 1. Linux 执行冻结依赖安装、报价回归、网页渲染、正式构建和隔离发布目录测试。
-2. 登录 Docker Hub，直接构建并推送 linux/amd64 与 linux/arm64 镜像；按要求不执行镜像运行检查。
-3. 默认分支生成 latest 和 SHA 标签，v2.0.0 等标签生成版本镜像。PR 只构建测试，不使用 Docker Hub 令牌。
-4. 服务器更新执行 docker compose pull 和 docker compose up -d --no-build。
+2. 直接构建 linux/amd64 与 linux/arm64 镜像，保存 OCI 镜像归档到 Actions 构建附件（保留7天）；按要求不执行镜像运行检查。
+3. 登录 Docker Hub 并推送。构建先于登录，即使令牌失效也能取得镜像附件；更新 Secret 后重新运行失败的任务即可发布。
+4. 默认分支生成 latest 和 SHA 标签，v2.0.0 等标签生成版本镜像。PR 只构建测试，不使用 Docker Hub 令牌。
+5. 服务器更新执行 docker compose pull 和 docker compose up -d --no-build。
 
 本机没有 Docker，镜像构建与发布由 GitHub Actions 执行。
 

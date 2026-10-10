@@ -33,6 +33,36 @@ jobs:
       - uses: actions/checkout@v6
       - uses: docker/setup-qemu-action@v4
       - uses: docker/setup-buildx-action@v4
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: trhilp/srt-quotation
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=sha
+      - name: Build Linux image archive
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=oci,dest=${{ runner.temp }}/srt-quotation-image.tar
+          build-args: |
+            BUILD_TIME=${{ github.event.head_commit.timestamp }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: mode=min
+      - name: Save built image
+        uses: actions/upload-artifact@v4
+        with:
+          name: srt-quotation-linux-oci
+          path: ${{ runner.temp }}/srt-quotation-image.tar
+          compression-level: 0
+          retention-days: 7
+          if-no-files-found: error
       - name: Check publishing token
         if: github.event_name != 'pull_request'
         env:
@@ -45,14 +75,6 @@ jobs:
         with:
           username: trhilp
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - uses: docker/metadata-action@v5
-        id: meta
-        with:
-          images: trhilp/srt-quotation
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=semver,pattern={{version}}
-            type=sha
       - name: Publish image
         uses: docker/build-push-action@v7
         with:
