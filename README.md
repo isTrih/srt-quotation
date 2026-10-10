@@ -110,7 +110,7 @@ Docker Hub 用户名已固定为 **trhilp**，镜像仓库固定为 **trhilp/srt
 
 工作流在 main/master 推送、v* 标签、手动触发及 PR 时运行：
 
-1. Linux/Windows 分别执行冻结依赖安装、报价回归、网页渲染、正式构建和隔离发布目录测试。
+1. Linux 执行冻结依赖安装、报价回归、网页渲染、正式构建和隔离发布目录测试。
 2. 构建 Linux amd64 镜像，真实启动容器，在384MB限制下验证非 root、网页/公章、管理员、发布、文字 PDF、挂载数据、数据库备份和重启持久化。
 3. 只有验证通过才登录 Docker Hub，构建并推送 linux/amd64 与 linux/arm64 镜像。
 4. 默认分支生成 latest 和 SHA 标签，v2.0.0 等标签生成版本镜像。PR 只构建测试，不使用 Docker Hub 令牌。
