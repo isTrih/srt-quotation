@@ -1,3 +1,4 @@
+import { localFetch as fetch } from './http-client.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { spawn,spawnSync } from 'node:child_process';
@@ -30,12 +31,12 @@ async function runScenario(binary, release=false) {
   }
   const port=await freePort(), origin='http://localhost:'+port;
   writeFileSync(join(runtimeDir,'.env'),'PUBLIC_ORIGIN='+origin+'\nCOOKIE_SECURE=false\n');
-  let server;
+  let server,serverLog='';
   const start=async()=>{
     server=spawn(command,['.output/index.js'],{cwd:runtimeDir,env:{...process.env,DATA_DIR:storageDir,PORT:String(port),NODE_ENV:'production'},stdio:['ignore','pipe','pipe']});
-    let log='';server.stdout.on('data',b=>log+=b);server.stderr.on('data',b=>log+=b);
+    serverLog='';server.stdout.on('data',b=>serverLog+=b);server.stderr.on('data',b=>serverLog+=b);
     let ready=false;for(let i=0;i<100;i++){try{if((await fetch(origin+'/api/health')).ok){ready=true;break;}}catch{} await new Promise(r=>setTimeout(r,100));}
-    assert.ok(ready,'server ready: '+log);
+    assert.ok(ready,'server ready: '+serverLog);
   };
   const stop=async()=>{if(server.exitCode===null){const ended=new Promise(r=>server.once('exit',r));server.kill();await ended;}};
   let cookie='';
@@ -96,7 +97,7 @@ async function runScenario(binary, release=false) {
     assert.ok((await call('/api/public/'+active.token,undefined,false)).value.pdfHashes.includes(digest(restoredPdf)));
     assert.equal(existsSync(join(backupDir,'pdf')),false,'PDF regenerated after database-only restore');
     await call('/api/auth',{action:'logout'});assert.equal((await call('/api/admin')).response.status,401);
-  } finally {await stop();assert.ok(resolve(dir).startsWith(resolve(tmpdir())+sep));rmSync(dir,{recursive:true,force:true});}
+  } catch(error){console.error('Bun server log:',serverLog);throw error;} finally {await stop();assert.ok(resolve(dir).startsWith(resolve(tmpdir())+sep));rmSync(dir,{recursive:true,force:true});}
 }
 const localBun=resolve('node_modules/bun/bin/bun.exe');
 const bun=process.env.BUN_BINARY||(process.platform==='win32'&&existsSync(localBun)?localBun:'bun');
