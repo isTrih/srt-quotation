@@ -9,7 +9,7 @@ const toolsPackage=resolve(root,'node_modules/@modern-js/app-tools/package.json'
 const tools=JSON.parse(readFileSync(toolsPackage,'utf8'));
 const modern=resolve(dirname(toolsPackage),typeof tools.bin==='string'?tools.bin:tools.bin.modern);
 // Modern.js build tooling uses its supported Node runtime; the deployed server uses Bun.
-const run=(entry,args=[])=>execFileSync('node',[entry,...args],{cwd:root,stdio:'inherit'});
+const run=(entry,args=[])=>execFileSync('node',[entry,...args],{cwd:root,stdio:'inherit',env:{...process.env,MODERNJS_DEPLOY:'node'}});
 run(require.resolve('typescript/bin/tsc'),['--noEmit']);
 run(modern,['deploy']);
 await import('./prepare-runtime.mjs');
