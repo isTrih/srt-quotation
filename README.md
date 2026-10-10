@@ -111,12 +111,11 @@ Docker Hub 用户名已固定为 **trhilp**，镜像仓库固定为 **trhilp/srt
 工作流在 main/master 推送、v* 标签、手动触发及 PR 时运行：
 
 1. Linux 执行冻结依赖安装、报价回归、网页渲染、正式构建和隔离发布目录测试。
-2. 构建 Linux amd64 镜像，真实启动容器，在384MB限制下验证非 root、网页/公章、管理员、发布、文字 PDF、挂载数据、数据库备份和重启持久化。
-3. 只有验证通过才登录 Docker Hub，构建并推送 linux/amd64 与 linux/arm64 镜像。
-4. 默认分支生成 latest 和 SHA 标签，v2.0.0 等标签生成版本镜像。PR 只构建测试，不使用 Docker Hub 令牌。
-5. 服务器更新执行 docker compose pull 和 docker compose up -d --no-build。
+2. 登录 Docker Hub，直接构建并推送 linux/amd64 与 linux/arm64 镜像；按要求不执行镜像运行检查。
+3. 默认分支生成 latest 和 SHA 标签，v2.0.0 等标签生成版本镜像。PR 只构建测试，不使用 Docker Hub 令牌。
+4. 服务器更新执行 docker compose pull 和 docker compose up -d --no-build。
 
-本机没有 Docker，真实镜像构建及容器测试由 GitHub Actions 执行。手动测试已有本地镜像可运行 `DOCKER_TEST_IMAGE=trhilp/srt-quotation:latest bun run test:docker`。
+本机没有 Docker，镜像构建与发布由 GitHub Actions 执行。
 
 ## 数据备份与恢复
 
@@ -140,7 +139,7 @@ docker compose exec quotation bun scripts/backup.mjs
 - 网页表格渲染和转义测试，确认不含 PDF 查看器。
 - Bun 服务与隔离发布目录测试：权限、单账号、来源校验、1MB上限、版本发布、撤销、字体/公章、文字 PDF、下载校验码及数据库备份恢复；验证发布和下载均不写入 PDF 文件。
 - 隔离测试把发布包复制到系统临时目录运行，不依赖项目源码或开发 node_modules。
-- Docker 容器回归在 CI 中运行，镜像发布必须通过该检查。
+- CI 执行 Linux 项目测试与构建，随后直接发布镜像，不进行镜像运行检查。
 - PDF 中文文字、30行单页、小二维码解码和跨页已验证。
 - 浏览器自动化受当前 Windows 沙箱故障影响，手机与桌面尚未完成实际浏览器视觉回归；网页组件、构建与接口有自动验证。
 - 单管理员、单实例；不支持多个实例共享 SQLite 写入。内存上限不是实际占用承诺。
