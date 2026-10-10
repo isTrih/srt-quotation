@@ -49,8 +49,8 @@ test('Docker: 非 root、网页资源、SQLite、文字 PDF、备份及重启持
     console.log('Container memory after PDF download: '+docker('stats','--no-stream','--format','{{.MemUsage}}',name));
   } finally {
     if(started){
-      // The mount belongs only to this generated test directory. Clean private backup files as container root.
-      try{docker('exec','--user','0:0',name,'bun','-e',"const fs=require('node:fs');for(const f of fs.readdirSync('/app/data'))fs.rmSync('/app/data/'+f,{recursive:true,force:true})");}catch{}
+      // The mount belongs only to this generated test directory. Clean private backup files as their application owner.
+      try{docker('exec',name,'bun','-e',"const fs=require('node:fs');for(const f of fs.readdirSync('/app/data'))fs.rmSync('/app/data/'+f,{recursive:true,force:true})");}catch{}
       try{docker('rm','-f',name);}catch{}
     }
     // Only remove the temporary directory created by this test.
