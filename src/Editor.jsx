@@ -1,5 +1,6 @@
 import React, {
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -35,6 +36,7 @@ import {
 } from "./customerHistory";
 
 const currency = (value) => `¥${money(value)}`;
+const ROWS_PER_PAGE = 20;
 
 function Icon({ name, size = 18 }) {
   const common = {
@@ -107,6 +109,12 @@ export default function Editor({ initialData, record, onSave, onPublish, busy })
   const [showPreview, setShowPreview] = useState(false);
   const modalRef = useRef(null);
   const importRef = useRef(null);
+  const tableRef = useRef(null);
+  const pendingRowFocus = useRef(null);
+  const rowCount = data.dataSource.length;
+  const lastRowPage = Math.max(0, Math.ceil(rowCount / ROWS_PER_PAGE) - 1);
+  const pageStart = rowPage * ROWS_PER_PAGE;
+  const pageEnd = Math.min(pageStart + ROWS_PER_PAGE, rowCount);
   const total = useMemo(
     () => data.dataSource.reduce((sum, row) => sum + amount(row), 0),
     [data.dataSource],
@@ -184,7 +192,23 @@ export default function Editor({ initialData, record, onSave, onPublish, busy })
       },
     }));
   };
-  useEffect(()=>{setRowPage(p=>Math.min(p,Math.max(0,Math.ceil(data.dataSource.length/20)-1)));},[data.dataSource.length]);
+  useLayoutEffect(() => {
+    const rowId = pendingRowFocus.current;
+    const index = rowId ? data.dataSource.findIndex((row) => row.id === rowId) : -1;
+    const targetPage = index < 0
+      ? Math.min(rowPage, lastRowPage)
+      : Math.floor(index / ROWS_PER_PAGE);
+    if (targetPage !== rowPage) {
+      setRowPage(targetPage);
+      return;
+    }
+    pendingRowFocus.current = null;
+    if (index >= 0) {
+      tableRef.current
+        ?.querySelector(`[data-row-id="${rowId}"] input[data-field="name"]`)
+        ?.focus();
+    }
+  }, [data.dataSource, lastRowPage, rowPage]);
   const changeRow = (id, key, value) =>
     setData((prev) => ({
       ...prev,
@@ -197,22 +221,19 @@ export default function Editor({ initialData, record, onSave, onPublish, busy })
     }));
   const addRow = (afterId = null) => {
     const row = newRow();
+    pendingRowFocus.current = row.id;
     setData((prev) => ({
       ...prev,
       dataSource: insertRow(prev.dataSource, row, afterId),
     }));
-    if (!afterId) setRowPage(Math.floor(data.dataSource.length / 20));
     setNotice("已添加一行");
-    requestAnimationFrame(() =>
-      document
-        .querySelector(`[data-row-id="${row.id}"] input[data-field="name"]`)
-        ?.focus(),
-    );
   };
   const duplicateRow = (id) => {
+    const copyId = crypto.randomUUID();
+    pendingRowFocus.current = copyId;
     setData((prev) => ({
       ...prev,
-      dataSource: copyQuoteRow(prev.dataSource, id),
+      dataSource: copyQuoteRow(prev.dataSource, id, copyId),
     }));
     setNotice("已复制一行，手动编号已保留");
   };
@@ -277,6 +298,14 @@ export default function Editor({ initialData, record, onSave, onPublish, busy })
     try { await (publish ? onPublish(data) : onSave(data)); setNotice(publish ? "报价已发布，可以分享链接或下载正式PDF" : "已保存到服务器"); }
     catch(error) { setNotice(error.message); }
   };
+
+  const renderRowPagination = (label) => lastRowPage > 0 && (
+    <nav className="pagination-controls row-pagination" aria-label={label}>
+      <button className="secondary-button" disabled={rowPage === 0} onClick={() => setRowPage(rowPage - 1)}>上一页</button>
+      <span>第 {pageStart + 1}–{pageEnd} 行 / 共 {rowCount} 行</span>
+      <button className="secondary-button" disabled={rowPage === lastRowPage} onClick={() => setRowPage(rowPage + 1)}>下一页</button>
+    </nav>
+  );
 
   return (
     <>
@@ -412,8 +441,9 @@ export default function Editor({ initialData, record, onSave, onPublish, busy })
                   <Icon name="plus" size={17} /> 添加一行
                 </button>
               </div>
+              {renderRowPagination("明细表上方翻页")}
               <div className="table-scroll">
-                <table className="editor-table">
+                <table className="editor-table" ref={tableRef}>
                   <thead>
                     <tr>
                       <th>编号</th>
@@ -427,7 +457,7 @@ export default function Editor({ initialData, record, onSave, onPublish, busy })
                     </tr>
                   </thead>
                   <tbody>
-                    {data.dataSource.slice(rowPage*20,(rowPage+1)*20).map((row, localIndex) => { const index=rowPage*20+localIndex; return (
+                    {data.dataSource.slice(pageStart, pageEnd).map((row, localIndex) => { const index = pageStart + localIndex; return (
                       <tr key={row.id} data-row-id={row.id}>
                         <td data-label="编号">
                           <input
@@ -530,7 +560,7 @@ export default function Editor({ initialData, record, onSave, onPublish, busy })
                   </tbody>
                 </table>
               </div>
-              {data.dataSource.length>20 && <div className="pagination-controls"><button className="secondary-button" disabled={rowPage===0} onClick={()=>setRowPage(rowPage-1)}>前20行</button><span>第 {rowPage*20+1}–{Math.min((rowPage+1)*20,data.dataSource.length)} 行 / {data.dataSource.length} 行</span><button className="secondary-button" disabled={(rowPage+1)*20>=data.dataSource.length} onClick={()=>setRowPage(rowPage+1)}>后20行</button></div>}
+              {renderRowPagination("明细表下方翻页")}
               <button className="add-row-button" onClick={() => addRow()}>
                 <Icon name="plus" size={17} /> 添加一行产品
               </button>

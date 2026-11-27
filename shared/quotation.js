@@ -107,12 +107,12 @@ export function insertRow(rows, row, afterId = null) {
   ]);
 }
 
-export function duplicateRow(rows, id) {
+export function duplicateRow(rows, id, copyId) {
   const source = rows.find((row) => row.id === id);
   if (!source) return rows;
   return insertRow(
     rows,
-    { ...source, id: crypto.randomUUID(), noManual: false },
+    { ...source, id: copyId ?? crypto.randomUUID(), noManual: false },
     id,
   );
 }
